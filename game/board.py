@@ -1,3 +1,5 @@
+import copy 
+
 ROWS = 7
 COLS = 7
 
@@ -53,3 +55,8 @@ class Board:
 
     def is_full(self):
         return all(self.grid[0][c] != " " for c in range(self.cols))
+
+    def copy(self):
+        new_board = Board(self.rows, self.cols)
+        new_board.grid = copy.deepcopy(self.grid)
+        return new_board
