@@ -21,7 +21,6 @@ def draw_board(screen, grid, top_left=(0, 100), square_size=100):
 
     for r in range(rows):
         for c in range(cols):
-            # Desenha fundo azul + buraco preto
             pygame.draw.rect(
                 screen,
                 BLUE,
@@ -42,7 +41,6 @@ def draw_board(screen, grid, top_left=(0, 100), square_size=100):
                 radius
             )
 
-    # Desenha peças (de baixo pra cima)
     for r in range(rows):
         for c in range(cols):
             piece = grid[r][c]
