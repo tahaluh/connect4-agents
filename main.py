@@ -1,67 +1,89 @@
 import pygame
 import sys
 from game.board import Board
-from agents.human_agent import HumanAgent
 from agents.random_agent import RandomAgent
+from agents.human_agent import HumanAgent
 from ui.pygame_draw import draw_board
 
-# Pygame init
-pygame.init()
-
-# Constantes
-ROWS = 7
-COLS = 7
-SQUARESIZE = 100
-WIDTH = COLS * SQUARESIZE
-HEIGHT = (ROWS + 1) * SQUARESIZE
-SIZE = (WIDTH, HEIGHT)
-
 WHITE = (255, 255, 255)
+ROWS, COLS = 7, 7
 
-screen = pygame.display.set_mode(SIZE)
-pygame.display.set_caption("Connect 4")
+def play_grid_games(grid_size, total_games, screen_size=(1400, 1600)):
+    pygame.init()
 
-font = pygame.font.SysFont("monospace", 75)
+    grid_rows, grid_cols = grid_size
+    max_games = grid_rows * grid_cols
+    total_games = min(total_games, max_games)
 
-def play_game(player1, player2):
-    board = Board(ROWS, COLS)
-    current_player = player1
-    draw_board(screen, board.grid)
-    game_over = False
+    screen_width, screen_height = screen_size
 
-    while not game_over:
-        pygame.time.wait(100)
+    board_pixel_width = screen_width // grid_cols
+    board_pixel_height = screen_height // grid_rows
+    square_size_x = board_pixel_width // COLS
+    square_size_y = board_pixel_height // ROWS
+    square_size = min(square_size_x, square_size_y)
+
+    screen = pygame.display.set_mode((screen_width, screen_height))
+    pygame.display.set_caption("Connect 4 Grid")
+    font = pygame.font.SysFont("monospace", square_size // 2)
+
+    games = []
+    for i in range(total_games):
+        board = Board(ROWS, COLS)
+        #player1 = HumanAgent("X", screen, square_size) 
+        player1 = RandomAgent("X")
+        player2 = RandomAgent("O")
+        games.append({
+            "board": board,
+            "players": [player1, player2],
+            "current": 0,
+            "over": False,
+            "top_left": (
+                (i % grid_cols) * board_pixel_width,
+                (i // grid_cols) * board_pixel_height
+            )
+        })
+
+    while not all(g["over"] for g in games):
+        pygame.time.wait(200)
+
+        for g in games:
+            if g["over"]:
+                continue
+            
+            board = g["board"]
+            draw_board(screen, board.grid, top_left=g["top_left"], square_size=square_size)
+
+            p1, p2 = g["players"]
+            current_player = p1 if g["current"] == 0 else p2
+            col = current_player.get_move(board)
+
+            if col is not None and board.is_valid_move(col):
+                row = board.get_next_open_row(col)
+                board.drop_piece(row, col, current_player.symbol)
+
+                if board.check_win(current_player.symbol):
+                    x, y = g["top_left"]
+                    label = font.render(f"{current_player.symbol} wins!", True, WHITE)
+                    screen.blit(label, (x + 10, y + 10))
+                    pygame.display.update()
+                    g["over"] = True
+                elif board.is_full():
+                    x, y = g["top_left"]
+                    label = font.render("Draw!", True, WHITE)
+                    screen.blit(label, (x + 10, y + 10))
+                    pygame.display.update()
+                    g["over"] = True
+                else:
+                    g["current"] = 1 - g["current"]
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
-        col = current_player.get_move(board) 
-
-        if col is not None and board.is_valid_move(col):
-            row = board.get_next_open_row(col)
-            board.drop_piece(row, col, current_player.symbol)
-            draw_board(screen, board.grid)
-
-            if board.check_win(current_player.symbol):
-                label = font.render(f"{current_player.symbol} wins!", True, WHITE)
-                screen.blit(label, (40, 10))
-                pygame.display.update()
-                pygame.time.wait(3000)
-                game_over = True
-            elif board.is_full():
-                label = font.render("Draw!", True, WHITE)
-                screen.blit(label, (40, 10))
-                pygame.display.update()
-                pygame.time.wait(3000)
-                game_over = True
-            else:
-                current_player = player2 if current_player == player1 else player1
-        elif isinstance(current_player, HumanAgent):
-            pygame.time.wait(1000)
+        
+    
 
 if __name__ == "__main__":
-    # p1 = HumanAgent("X", screen, SQUARESIZE) 
-    p1 = RandomAgent("X")
-    p2 = RandomAgent("O")
-    play_game(p1, p2)
+    play_grid_games(grid_size=(3, 4), total_games=12, screen_size=(1200, 900))
+    pygame.time.wait(3000)
